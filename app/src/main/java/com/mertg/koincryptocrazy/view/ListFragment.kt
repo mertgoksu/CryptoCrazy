@@ -5,26 +5,42 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.mertg.koincryptocrazy.databinding.FragmentListBinding
 import com.mertg.koincryptocrazy.model.CryptoModel
 import com.mertg.koincryptocrazy.service.CryptoAPI
+import com.mertg.koincryptocrazy.viewmodel.CryptoViewModel
 import kotlinx.coroutines.*
+import org.koin.android.ext.android.get
+import org.koin.android.ext.android.inject
+import org.koin.android.scope.AndroidScopeComponent
+import org.koin.androidx.scope.fragmentScope
+import org.koin.androidx.viewmodel.ext.android.viewModel
+import org.koin.core.scope.Scope
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.zip.ZipEntry
 
 
-class ListFragment : Fragment() {
+class ListFragment() : Fragment(), RecyclerViewAdapter.Listener, AndroidScopeComponent {
 
     private lateinit var binding: FragmentListBinding
 
-    private val BASE_URL = "https://api.coingecko.com/api/v3/"
-    private var cryptoModels : ArrayList<CryptoModel>? = null
-    private var job : Job? = null
+    private var cryptoAdapter = RecyclerViewAdapter(arrayListOf(),this)
 
-    val exceptionHandler= CoroutineExceptionHandler { coroutineContext, throwable ->
-        println("Error: ${throwable.localizedMessage}")
-    }
+    private val viewModel by viewModel<CryptoViewModel>()
+
+    override val scope: Scope by fragmentScope()
+    private val hello by inject<String>()
+
+    /*
+    private val api = get<CryptoAPI>()
+
+    private val apilazy by inject<CryptoAPI>()
+    */
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,34 +62,53 @@ class ListFragment : Fragment() {
         val layoutManager = LinearLayoutManager(requireContext())
         binding.recyclerView.layoutManager = layoutManager
 
-        loadData()
+//        viewModel = ViewModelProvider(this).get(CryptoViewModel::class.java)
+        viewModel.getDataFromAPI()
+
+        observeLiveData()
+
+
     }
 
-    private fun loadData() {
-        val retrofit = Retrofit.Builder()
-            .baseUrl(BASE_URL)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(CryptoAPI::class.java)
+    private fun observeLiveData() {
+        viewModel.cryptoList.observe(viewLifecycleOwner, Observer { cryptos ->
+            cryptos?.let{
+                binding.recyclerView.visibility = View.VISIBLE
+                cryptoAdapter = RecyclerViewAdapter(ArrayList(cryptos.data ?: arrayListOf()),this@ListFragment)
+                binding.recyclerView.adapter = cryptoAdapter
+            }
+        })
 
-        job = CoroutineScope(Dispatchers.IO + exceptionHandler).launch {
-            val response = retrofit.getData()
-
-            withContext(Dispatchers.Main){
-                if(response.isSuccessful){
-                    response.body()?.let {
-                        
-                    }
+        viewModel.cryptoError.observe(viewLifecycleOwner, Observer { error ->
+            error?.let {
+                if(it.data == true){
+                    binding.cryptoErrorText.visibility = View.VISIBLE
+                } else{
+                    binding.cryptoErrorText.visibility = View.GONE
                 }
             }
-        }
+        })
+
+        viewModel.cryptoLoading.observe(viewLifecycleOwner, Observer { loading ->
+            loading?.let{
+                if(it.data == true){
+                    binding.cryptoProgressBar.visibility = View.VISIBLE
+                    binding.recyclerView.visibility = View.GONE
+                    binding.cryptoErrorText.visibility = View.GONE
+                }else{
+                    binding.cryptoProgressBar.visibility = View.GONE
+                }
+            }
+        })
 
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
+    }
 
-        job?.cancel()
+    override fun onItemClick(cryptoModel: CryptoModel) {
+        Toast.makeText(requireContext(), "Clicked on: ${cryptoModel.name}", Toast.LENGTH_SHORT).show()
     }
 
 }
