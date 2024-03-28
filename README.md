@@ -10,7 +10,10 @@ A basic Kotlin app to practice in Koin Dependency Injection
 - Koin Dependency Injection <br>
 - Retrofit <br>
 - RxJava <br>
-- Fragment  Arguments <br>
+- Fragments <br>
+- Navigation Component <br>
+- Arguments <br>
+- XML <br>
 
 ### Here are some photos of the app ;
 <br>
