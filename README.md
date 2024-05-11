@@ -15,7 +15,8 @@ A basic Kotlin app to practice in Koin Dependency Injection
 - Arguments <br>
 - XML <br>
 
-### Here are some photos of the app ;
-<br>
+#
+### Here are some photos and videos of the app;
+#
 
 <img width="322" alt="1" src="https://github.com/mertgoksu/CryptoCrazy/assets/119433132/93481bdd-8329-4e8d-9bab-a26fae75e68b">
